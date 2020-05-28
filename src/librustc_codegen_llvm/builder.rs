@@ -191,6 +191,7 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
 
     fn invoke(
         &mut self,
+        fn_ty: &'ll Type,
         llfn: &'ll Value,
         args: &[&'ll Value],
         then: &'ll BasicBlock,
@@ -206,6 +207,7 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
         unsafe {
             llvm::LLVMRustBuildInvoke(
                 self.llbuilder,
+                fn_ty,
                 llfn,
                 args.as_ptr(),
                 args.len() as c_uint,
@@ -406,20 +408,21 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
 
     fn atomic_load(
         &mut self,
+        ty: &'ll Type,
         ptr: &'ll Value,
         order: rustc_codegen_ssa::common::AtomicOrdering,
         size: Size,
     ) -> &'ll Value {
         unsafe {
-            let load = llvm::LLVMRustBuildAtomicLoad(
+            llvm::LLVMRustBuildAtomicLoad(
                 self.llbuilder,
+                ty,
                 ptr,
                 UNNAMED,
+                // LLVM requires the alignment of atomic loads to be at least the size of the type.
+                size.bytes() as c_uint,
                 AtomicOrdering::from_generic(order),
-            );
-            // LLVM requires the alignment of atomic loads to be at least the size of the type.
-            llvm::LLVMSetAlignment(load, size.bytes() as c_uint);
-            load
+            )
         }
     }
 

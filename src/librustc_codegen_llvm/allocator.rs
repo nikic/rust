@@ -72,8 +72,8 @@ pub(crate) unsafe fn codegen(tcx: TyCtxt<'_>, mods: &mut ModuleLlvm, kind: Alloc
             .enumerate()
             .map(|(i, _)| llvm::LLVMGetParam(llfn, i as c_uint))
             .collect::<Vec<_>>();
-        let ret =
-            llvm::LLVMRustBuildCall(llbuilder, callee, args.as_ptr(), args.len() as c_uint, None);
+        let ret = llvm::LLVMRustBuildCall(
+            llbuilder, ty, callee, args.as_ptr(), args.len() as c_uint, None);
         llvm::LLVMSetTailCall(ret, True);
         if output.is_some() {
             llvm::LLVMBuildRet(llbuilder, ret);

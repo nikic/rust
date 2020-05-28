@@ -24,7 +24,8 @@ impl<'a, 'tcx> VirtualIndex {
         // Load the data pointer from the object.
         debug!("get_fn({:?}, {:?})", llvtable, self);
 
-        let llvtable = bx.pointercast(llvtable, bx.type_ptr_to(bx.fn_ptr_backend_type(fn_abi)));
+        let llvtable =
+            bx.pointercast(llvtable, bx.type_ptr_to(bx.type_ptr_to(bx.fn_backend_type(fn_abi))));
         let ptr_align = bx.tcx().data_layout.pointer_align.abi;
         let gep = bx.inbounds_gep(llvtable, &[bx.const_usize(self.0)]);
         let ptr = bx.load(gep, ptr_align);

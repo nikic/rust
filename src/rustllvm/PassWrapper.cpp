@@ -49,8 +49,10 @@ typedef struct LLVMOpaqueTargetMachine *LLVMTargetMachineRef;
 
 DEFINE_STDCXX_CONVERSION_FUNCTIONS(Pass, LLVMPassRef)
 DEFINE_STDCXX_CONVERSION_FUNCTIONS(TargetMachine, LLVMTargetMachineRef)
+#if LLVM_VERSION_LT(11, 0)
 DEFINE_STDCXX_CONVERSION_FUNCTIONS(PassManagerBuilder,
                                    LLVMPassManagerBuilderRef)
+#endif
 
 extern "C" void LLVMInitializePasses() {
   PassRegistry &Registry = *PassRegistry::getPassRegistry();
@@ -336,17 +338,17 @@ enum class LLVMRustPassBuilderOptLevel {
 static PassBuilder::OptimizationLevel fromRust(LLVMRustPassBuilderOptLevel Level) {
   switch (Level) {
   case LLVMRustPassBuilderOptLevel::O0:
-    return PassBuilder::O0;
+    return PassBuilder::OptimizationLevel::O0;
   case LLVMRustPassBuilderOptLevel::O1:
-    return PassBuilder::O1;
+    return PassBuilder::OptimizationLevel::O1;
   case LLVMRustPassBuilderOptLevel::O2:
-    return PassBuilder::O2;
+    return PassBuilder::OptimizationLevel::O2;
   case LLVMRustPassBuilderOptLevel::O3:
-    return PassBuilder::O3;
+    return PassBuilder::OptimizationLevel::O3;
   case LLVMRustPassBuilderOptLevel::Os:
-    return PassBuilder::Os;
+    return PassBuilder::OptimizationLevel::Os;
   case LLVMRustPassBuilderOptLevel::Oz:
-    return PassBuilder::Oz;
+    return PassBuilder::OptimizationLevel::Oz;
   default:
     report_fatal_error("Bad PassBuilderOptLevel.");
   }
@@ -844,7 +846,7 @@ LLVMRustOptimizeWithNewPassManager(
 
   ModulePassManager MPM(DebugPassManager);
   if (!NoPrepopulatePasses) {
-    if (OptLevel == PassBuilder::O0) {
+    if (OptLevel == PassBuilder::OptimizationLevel::O0) {
       for (const auto &C : PipelineStartEPCallbacks)
         C(MPM);
 
@@ -980,10 +982,10 @@ public:
     const Value *Value;
     if (const CallInst *CI = dyn_cast<CallInst>(I)) {
       Name = "call";
-      Value = CI->getCalledValue();
+      Value = CI->getCalledOperand();
     } else if (const InvokeInst* II = dyn_cast<InvokeInst>(I)) {
       Name = "invoke";
-      Value = II->getCalledValue();
+      Value = II->getCalledOperand();
     } else {
       // Could demangle more operations, e. g.
       // `store %place, @function`.
@@ -1324,7 +1326,7 @@ LLVMRustFreeThinLTOData(LLVMRustThinLTOData *Data) {
 extern "C" bool
 LLVMRustPrepareThinLTORename(const LLVMRustThinLTOData *Data, LLVMModuleRef M) {
   Module &Mod = *unwrap(M);
-  if (renameModuleForThinLTO(Mod, Data->Index)) {
+  if (renameModuleForThinLTO(Mod, Data->Index, /* ClearDSOLocalOnDeclarations */ false)) {
     LLVMRustSetLastError("renameModuleForThinLTO failed");
     return false;
   }
@@ -1385,7 +1387,7 @@ LLVMRustPrepareThinLTOImport(const LLVMRustThinLTOData *Data, LLVMModuleRef M) {
 
     return MOrErr;
   };
-  FunctionImporter Importer(Data->Index, Loader);
+  FunctionImporter Importer(Data->Index, Loader, /* ClearDSOLocalOnDeclarations */ false);
   Expected<bool> Result = Importer.importFunctions(Mod, ImportList);
   if (!Result) {
     LLVMRustSetLastError(toString(Result.takeError()).c_str());
@@ -1553,10 +1555,15 @@ LLVMRustThinLTOPatchDICompileUnit(LLVMModuleRef Mod, DICompileUnit *Unit) {
       for (Instruction &BI : FI) {
         if (auto Loc = BI.getDebugLoc())
           Finder.processLocation(*M, Loc);
+#if LLVM_VERSION_GE(11, 0)
+        if (auto DVI = dyn_cast<DbgVariableIntrinsic>(&BI))
+          Finder.processVariable(*M, *DVI);
+#else
         if (auto DVI = dyn_cast<DbgValueInst>(&BI))
           Finder.processValue(*M, DVI);
         if (auto DDI = dyn_cast<DbgDeclareInst>(&BI))
           Finder.processDeclare(*M, DDI);
+#endif
       }
     }
   }

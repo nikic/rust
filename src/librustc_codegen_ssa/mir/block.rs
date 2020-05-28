@@ -121,8 +121,9 @@ impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
             } else {
                 fx.unreachable_block()
             };
-            let invokeret =
-                bx.invoke(fn_ptr, &llargs, ret_bx, self.llblock(fx, cleanup), self.funclet(fx));
+            let invokeret = bx.invoke(
+                bx.fn_backend_type(&fn_abi), fn_ptr, &llargs, ret_bx, self.llblock(fx, cleanup),
+                self.funclet(fx));
             bx.apply_attrs_callsite(&fn_abi, invokeret);
 
             if let Some((ret_dest, target)) = destination {

@@ -987,6 +987,7 @@ extern "C" {
     ) -> &'a Value;
     pub fn LLVMRustBuildInvoke(
         B: &Builder<'a>,
+        FnTy: &'a Type,
         Fn: &'a Value,
         Args: *const &'a Value,
         NumArgs: c_uint,
@@ -1349,6 +1350,7 @@ extern "C" {
     pub fn LLVMBuildPhi(B: &Builder<'a>, Ty: &'a Type, Name: *const c_char) -> &'a Value;
     pub fn LLVMRustBuildCall(
         B: &Builder<'a>,
+        FnTy: &'a Type,
         Fn: &'a Value,
         Args: *const &'a Value,
         NumArgs: c_uint,
@@ -1463,8 +1465,10 @@ extern "C" {
     // Atomic Operations
     pub fn LLVMRustBuildAtomicLoad(
         B: &Builder<'a>,
+        Ty: &'a Type,
         PointerVal: &'a Value,
         Name: *const c_char,
+        Alignment: c_uint,
         Order: AtomicOrdering,
     ) -> &'a Value;
 
@@ -1472,6 +1476,7 @@ extern "C" {
         B: &Builder<'a>,
         Val: &'a Value,
         Ptr: &'a Value,
+        Alignment: c_uint,
         Order: AtomicOrdering,
     ) -> &'a Value;
 
