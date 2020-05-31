@@ -132,7 +132,7 @@ impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
                 fx.store_return(&mut ret_bx, ret_dest, &fn_abi.ret, invokeret);
             }
         } else {
-            let llret = bx.call(fn_ptr, &llargs, self.funclet(fx));
+            let llret = bx.call(bx.fn_backend_type(&fn_abi), fn_ptr, &llargs, self.funclet(fx));
             bx.apply_attrs_callsite(&fn_abi, llret);
             if fx.mir[self.bb].is_cleanup {
                 // Cleanup is always the cold path. Don't inline

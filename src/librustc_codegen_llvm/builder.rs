@@ -606,14 +606,13 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
         debug!("Store {:?} -> {:?}", val, ptr);
         let ptr = self.check_store(val, ptr);
         unsafe {
-            let store = llvm::LLVMRustBuildAtomicStore(
+            llvm::LLVMRustBuildAtomicStore(
                 self.llbuilder,
                 val,
                 ptr,
+                size.bytes() as c_uint,
                 AtomicOrdering::from_generic(order),
             );
-            // LLVM requires the alignment of atomic stores to be at least the size of the type.
-            llvm::LLVMSetAlignment(store, size.bytes() as c_uint);
         }
     }
 
@@ -1002,6 +1001,7 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
 
     fn call(
         &mut self,
+        fn_ty: &'ll Type,
         llfn: &'ll Value,
         args: &[&'ll Value],
         funclet: Option<&Funclet<'ll>>,
@@ -1015,6 +1015,7 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
         unsafe {
             llvm::LLVMRustBuildCall(
                 self.llbuilder,
+                fn_ty,
                 llfn,
                 args.as_ptr() as *const &llvm::Value,
                 args.len() as c_uint,

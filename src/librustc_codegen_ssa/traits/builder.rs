@@ -120,7 +120,13 @@ pub trait BuilderMethods<'a, 'tcx>:
 
     fn load(&mut self, ptr: Self::Value, align: Align) -> Self::Value;
     fn volatile_load(&mut self, ptr: Self::Value) -> Self::Value;
-    fn atomic_load(&mut self, ptr: Self::Value, order: AtomicOrdering, size: Size) -> Self::Value;
+    fn atomic_load(
+        &mut self,
+        ty: Self::Type,
+        ptr: Self::Value,
+        order: AtomicOrdering,
+        size: Size
+    ) -> Self::Value;
     fn load_operand(&mut self, place: PlaceRef<'tcx, Self::Value>)
     -> OperandRef<'tcx, Self::Value>;
 
@@ -263,6 +269,7 @@ pub trait BuilderMethods<'a, 'tcx>:
 
     fn call(
         &mut self,
+        fn_ty: Self::Type,
         llfn: Self::Value,
         args: &[Self::Value],
         funclet: Option<&Self::Funclet>,
