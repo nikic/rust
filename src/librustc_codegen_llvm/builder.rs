@@ -4,7 +4,7 @@ use crate::llvm::{self, BasicBlock, False};
 use crate::llvm::{AtomicOrdering, AtomicRmwBinOp, SynchronizationScope};
 use crate::type_::Type;
 use crate::type_of::LayoutLlvmExt;
-use crate::value::Value;
+use crate::value::{Function, Value};
 use libc::{c_char, c_uint};
 use log::debug;
 use rustc_codegen_ssa::base::to_immediate;
@@ -116,7 +116,7 @@ macro_rules! builder_methods_for_value_instructions {
 }
 
 impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
-    fn new_block<'b>(cx: &'a CodegenCx<'ll, 'tcx>, llfn: &'ll Value, name: &'b str) -> Self {
+    fn new_block<'b>(cx: &'a CodegenCx<'ll, 'tcx>, llfn: &'ll Function, name: &'b str) -> Self {
         let mut bx = Builder::with_cx(cx);
         let llbb = unsafe {
             let name = SmallCStr::new(name);

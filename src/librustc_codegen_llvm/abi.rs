@@ -3,7 +3,7 @@ use crate::context::CodegenCx;
 use crate::llvm::{self, AttributePlace};
 use crate::type_::Type;
 use crate::type_of::LayoutLlvmExt;
-use crate::value::Value;
+use crate::value::{Function, Value};
 
 use rustc_codegen_ssa::mir::operand::OperandValue;
 use rustc_codegen_ssa::mir::place::PlaceRef;
@@ -41,12 +41,12 @@ impl ArgAttributeExt for ArgAttribute {
 }
 
 pub trait ArgAttributesExt {
-    fn apply_llfn(&self, idx: AttributePlace, llfn: &Value, ty: Option<&Type>);
+    fn apply_llfn(&self, idx: AttributePlace, llfn: &Function, ty: Option<&Type>);
     fn apply_callsite(&self, idx: AttributePlace, callsite: &Value, ty: Option<&Type>);
 }
 
 impl ArgAttributesExt for ArgAttributes {
-    fn apply_llfn(&self, idx: AttributePlace, llfn: &Value, ty: Option<&Type>) {
+    fn apply_llfn(&self, idx: AttributePlace, llfn: &Function, ty: Option<&Type>) {
         let mut regular = self.regular;
         unsafe {
             let deref = self.pointee_size.bytes();

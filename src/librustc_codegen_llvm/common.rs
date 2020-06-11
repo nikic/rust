@@ -4,7 +4,7 @@
 
 use crate::consts::{self, const_alloc_to_llvm};
 pub use crate::context::CodegenCx;
-use crate::llvm::{self, BasicBlock, Bool, ConstantInt, False, OperandBundleDef, True};
+use crate::llvm::{self, BasicBlock, Bool, ConstantInt, False, Function, OperandBundleDef, True};
 use crate::type_::Type;
 use crate::type_of::LayoutLlvmExt;
 use crate::value::Value;
@@ -82,7 +82,7 @@ impl Funclet<'ll> {
 
 impl BackendTypes for CodegenCx<'ll, 'tcx> {
     type Value = &'ll Value;
-    type Function = &'ll Value;
+    type Function = &'ll Function;
 
     type BasicBlock = &'ll BasicBlock;
     type Type = &'ll Type;

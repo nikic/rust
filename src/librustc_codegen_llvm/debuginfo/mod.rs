@@ -15,7 +15,7 @@ use crate::llvm;
 use crate::llvm::debuginfo::{
     DIArray, DIBuilder, DIFile, DIFlags, DILexicalBlock, DISPFlags, DIScope, DIType, DIVariable,
 };
-use crate::value::Value;
+use crate::value::{Function, Value};
 
 use rustc_codegen_ssa::debuginfo::type_names;
 use rustc_codegen_ssa::mir::debuginfo::{DebugScope, FunctionDebugContext, VariableKind};
@@ -230,7 +230,7 @@ impl DebugInfoMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         &self,
         instance: Instance<'tcx>,
         fn_abi: &FnAbi<'tcx, Ty<'tcx>>,
-        llfn: &'ll Value,
+        llfn: &'ll Function,
         mir: &mir::Body<'_>,
     ) -> Option<FunctionDebugContext<&'ll DIScope>> {
         if self.sess().opts.debuginfo == DebugInfo::None {

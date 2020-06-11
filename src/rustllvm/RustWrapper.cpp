@@ -259,7 +259,7 @@ extern "C" void LLVMRustAddByValCallSiteAttr(LLVMValueRef Instr, unsigned Index,
   Call.addAttribute(Index, Attr);
 }
 
-extern "C" void LLVMRustAddFunctionAttribute(LLVMValueRef Fn, unsigned Index,
+extern "C" void LLVMRustAddFunctionAttribute(LLVMFunctionRef Fn, unsigned Index,
                                              LLVMRustAttribute RustAttr) {
   Function *A = unwrap<Function>(Fn);
   Attribute Attr = Attribute::get(A->getContext(), fromRust(RustAttr));
@@ -276,7 +276,7 @@ extern "C" void LLVMRustAddAlignmentAttr(LLVMValueRef Fn,
   A->addAttributes(Index, B);
 }
 
-extern "C" void LLVMRustAddDereferenceableAttr(LLVMValueRef Fn, unsigned Index,
+extern "C" void LLVMRustAddDereferenceableAttr(LLVMFunctionRef Fn, unsigned Index,
                                                uint64_t Bytes) {
   Function *A = unwrap<Function>(Fn);
   AttrBuilder B;
@@ -284,7 +284,7 @@ extern "C" void LLVMRustAddDereferenceableAttr(LLVMValueRef Fn, unsigned Index,
   A->addAttributes(Index, B);
 }
 
-extern "C" void LLVMRustAddDereferenceableOrNullAttr(LLVMValueRef Fn,
+extern "C" void LLVMRustAddDereferenceableOrNullAttr(LLVMFunctionRef Fn,
                                                      unsigned Index,
                                                      uint64_t Bytes) {
   Function *A = unwrap<Function>(Fn);
@@ -293,7 +293,7 @@ extern "C" void LLVMRustAddDereferenceableOrNullAttr(LLVMValueRef Fn,
   A->addAttributes(Index, B);
 }
 
-extern "C" void LLVMRustAddByValAttr(LLVMValueRef Fn, unsigned Index,
+extern "C" void LLVMRustAddByValAttr(LLVMFunctionRef Fn, unsigned Index,
                                      LLVMTypeRef Ty) {
   Function *F = unwrap<Function>(Fn);
 #if LLVM_VERSION_GE(9, 0)
@@ -304,7 +304,7 @@ extern "C" void LLVMRustAddByValAttr(LLVMValueRef Fn, unsigned Index,
   F->addAttribute(Index, Attr);
 }
 
-extern "C" void LLVMRustAddFunctionAttrStringValue(LLVMValueRef Fn,
+extern "C" void LLVMRustAddFunctionAttrStringValue(LLVMFunctionRef Fn,
                                                    unsigned Index,
                                                    const char *Name,
                                                    const char *Value) {
@@ -314,7 +314,7 @@ extern "C" void LLVMRustAddFunctionAttrStringValue(LLVMValueRef Fn,
   F->addAttributes(Index, B);
 }
 
-extern "C" void LLVMRustRemoveFunctionAttributes(LLVMValueRef Fn,
+extern "C" void LLVMRustRemoveFunctionAttributes(LLVMFunctionRef Fn,
                                                  unsigned Index,
                                                  LLVMRustAttribute RustAttr) {
   Function *F = unwrap<Function>(Fn);

@@ -15,52 +15,52 @@ use rustc_session::config::{OptLevel, Sanitizer};
 use rustc_session::Session;
 
 use crate::attributes;
-use crate::llvm::AttributePlace::Function;
+use crate::llvm::AttributePlace;
 use crate::llvm::{self, Attribute};
 use crate::llvm_util;
 pub use rustc_attr::{InlineAttr, OptimizeAttr};
 
 use crate::context::CodegenCx;
-use crate::value::Value;
+use crate::value::Function;
 
 /// Mark LLVM function to use provided inline heuristic.
 #[inline]
-fn inline(cx: &CodegenCx<'ll, '_>, val: &'ll Value, inline: InlineAttr) {
+fn inline(cx: &CodegenCx<'ll, '_>, val: &'ll Function, inline: InlineAttr) {
     use self::InlineAttr::*;
     match inline {
-        Hint => Attribute::InlineHint.apply_llfn(Function, val),
-        Always => Attribute::AlwaysInline.apply_llfn(Function, val),
+        Hint => Attribute::InlineHint.apply_llfn(AttributePlace::Function, val),
+        Always => Attribute::AlwaysInline.apply_llfn(AttributePlace::Function, val),
         Never => {
             if cx.tcx().sess.target.target.arch != "amdgpu" {
-                Attribute::NoInline.apply_llfn(Function, val);
+                Attribute::NoInline.apply_llfn(AttributePlace::Function, val);
             }
         }
         None => {
-            Attribute::InlineHint.unapply_llfn(Function, val);
-            Attribute::AlwaysInline.unapply_llfn(Function, val);
-            Attribute::NoInline.unapply_llfn(Function, val);
+            Attribute::InlineHint.unapply_llfn(AttributePlace::Function, val);
+            Attribute::AlwaysInline.unapply_llfn(AttributePlace::Function, val);
+            Attribute::NoInline.unapply_llfn(AttributePlace::Function, val);
         }
     };
 }
 
 /// Apply LLVM sanitize attributes.
 #[inline]
-pub fn sanitize(cx: &CodegenCx<'ll, '_>, codegen_fn_flags: CodegenFnAttrFlags, llfn: &'ll Value) {
+pub fn sanitize(cx: &CodegenCx<'ll, '_>, codegen_fn_flags: CodegenFnAttrFlags, llfn: &'ll Function) {
     if let Some(ref sanitizer) = cx.tcx.sess.opts.debugging_opts.sanitizer {
         match *sanitizer {
             Sanitizer::Address => {
                 if !codegen_fn_flags.contains(CodegenFnAttrFlags::NO_SANITIZE_ADDRESS) {
-                    llvm::Attribute::SanitizeAddress.apply_llfn(Function, llfn);
+                    llvm::Attribute::SanitizeAddress.apply_llfn(AttributePlace::Function, llfn);
                 }
             }
             Sanitizer::Memory => {
                 if !codegen_fn_flags.contains(CodegenFnAttrFlags::NO_SANITIZE_MEMORY) {
-                    llvm::Attribute::SanitizeMemory.apply_llfn(Function, llfn);
+                    llvm::Attribute::SanitizeMemory.apply_llfn(AttributePlace::Function, llfn);
                 }
             }
             Sanitizer::Thread => {
                 if !codegen_fn_flags.contains(CodegenFnAttrFlags::NO_SANITIZE_THREAD) {
-                    llvm::Attribute::SanitizeThread.apply_llfn(Function, llfn);
+                    llvm::Attribute::SanitizeThread.apply_llfn(AttributePlace::Function, llfn);
                 }
             }
             Sanitizer::Leak => {}
@@ -70,21 +70,21 @@ pub fn sanitize(cx: &CodegenCx<'ll, '_>, codegen_fn_flags: CodegenFnAttrFlags, l
 
 /// Tell LLVM to emit or not emit the information necessary to unwind the stack for the function.
 #[inline]
-pub fn emit_uwtable(val: &'ll Value, emit: bool) {
-    Attribute::UWTable.toggle_llfn(Function, val, emit);
+pub fn emit_uwtable(val: &'ll Function, emit: bool) {
+    Attribute::UWTable.toggle_llfn(AttributePlace::Function, val, emit);
 }
 
 /// Tell LLVM if this function should be 'naked', i.e., skip the epilogue and prologue.
 #[inline]
-fn naked(val: &'ll Value, is_naked: bool) {
-    Attribute::Naked.toggle_llfn(Function, val, is_naked);
+fn naked(val: &'ll Function, is_naked: bool) {
+    Attribute::Naked.toggle_llfn(AttributePlace::Function, val, is_naked);
 }
 
-pub fn set_frame_pointer_elimination(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
+pub fn set_frame_pointer_elimination(cx: &CodegenCx<'ll, '_>, llfn: &'ll Function) {
     if cx.sess().must_not_eliminate_frame_pointers() {
         llvm::AddFunctionAttrStringValue(
             llfn,
-            llvm::AttributePlace::Function,
+            AttributePlace::Function,
             const_cstr!("frame-pointer"),
             const_cstr!("all"),
         );
@@ -93,7 +93,7 @@ pub fn set_frame_pointer_elimination(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) 
 
 /// Tell LLVM what instrument function to insert.
 #[inline]
-fn set_instrument_function(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
+fn set_instrument_function(cx: &CodegenCx<'ll, '_>, llfn: &'ll Function) {
     if cx.sess().instrument_mcount() {
         // Similar to `clang -pg` behavior. Handled by the
         // `post-inline-ee-instrument` LLVM pass.
@@ -106,14 +106,14 @@ fn set_instrument_function(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
 
         llvm::AddFunctionAttrStringValue(
             llfn,
-            llvm::AttributePlace::Function,
+            AttributePlace::Function,
             const_cstr!("instrument-function-entry-inlined"),
             &mcount_name,
         );
     }
 }
 
-fn set_probestack(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
+fn set_probestack(cx: &CodegenCx<'ll, '_>, llfn: &'ll Function) {
     // Only use stack probes if the target specification indicates that we
     // should be using stack probes
     if !cx.sess().target.target.options.stack_probes {
@@ -142,7 +142,7 @@ fn set_probestack(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
     // This is defined in the `compiler-builtins` crate for each architecture.
     llvm::AddFunctionAttrStringValue(
         llfn,
-        llvm::AttributePlace::Function,
+        AttributePlace::Function,
         const_cstr!("probe-stack"),
         const_cstr!("__rust_probestack"),
     );
@@ -186,11 +186,11 @@ pub fn llvm_target_features(sess: &Session) -> impl Iterator<Item = &str> {
         .map(translate_obsolete_target_features)
 }
 
-pub fn apply_target_cpu_attr(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
+pub fn apply_target_cpu_attr(cx: &CodegenCx<'ll, '_>, llfn: &'ll Function) {
     let target_cpu = SmallCStr::new(llvm_util::target_cpu(cx.tcx.sess));
     llvm::AddFunctionAttrStringValue(
         llfn,
-        llvm::AttributePlace::Function,
+        AttributePlace::Function,
         const_cstr!("target-cpu"),
         target_cpu.as_c_str(),
     );
@@ -198,29 +198,29 @@ pub fn apply_target_cpu_attr(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
 
 /// Sets the `NonLazyBind` LLVM attribute on a given function,
 /// assuming the codegen options allow skipping the PLT.
-pub fn non_lazy_bind(sess: &Session, llfn: &'ll Value) {
+pub fn non_lazy_bind(sess: &Session, llfn: &'ll Function) {
     // Don't generate calls through PLT if it's not necessary
     if !sess.needs_plt() {
-        Attribute::NonLazyBind.apply_llfn(Function, llfn);
+        Attribute::NonLazyBind.apply_llfn(AttributePlace::Function, llfn);
     }
 }
 
-pub(crate) fn default_optimisation_attrs(sess: &Session, llfn: &'ll Value) {
+pub(crate) fn default_optimisation_attrs(sess: &Session, llfn: &'ll Function) {
     match sess.opts.optimize {
         OptLevel::Size => {
-            llvm::Attribute::MinSize.unapply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeForSize.apply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeNone.unapply_llfn(Function, llfn);
+            llvm::Attribute::MinSize.unapply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeForSize.apply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeNone.unapply_llfn(AttributePlace::Function, llfn);
         }
         OptLevel::SizeMin => {
-            llvm::Attribute::MinSize.apply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeForSize.apply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeNone.unapply_llfn(Function, llfn);
+            llvm::Attribute::MinSize.apply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeForSize.apply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeNone.unapply_llfn(AttributePlace::Function, llfn);
         }
         OptLevel::No => {
-            llvm::Attribute::MinSize.unapply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeForSize.unapply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeNone.unapply_llfn(Function, llfn);
+            llvm::Attribute::MinSize.unapply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeForSize.unapply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeNone.unapply_llfn(AttributePlace::Function, llfn);
         }
         _ => {}
     }
@@ -228,7 +228,7 @@ pub(crate) fn default_optimisation_attrs(sess: &Session, llfn: &'ll Value) {
 
 /// Composite function which sets LLVM attributes for function depending on its AST (`#[attribute]`)
 /// attributes.
-pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::Instance<'tcx>) {
+pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Function, instance: ty::Instance<'tcx>) {
     let codegen_fn_attrs = cx.tcx.codegen_fn_attrs(instance.def_id());
 
     match codegen_fn_attrs.optimize {
@@ -236,14 +236,14 @@ pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::
             default_optimisation_attrs(cx.tcx.sess, llfn);
         }
         OptimizeAttr::Speed => {
-            llvm::Attribute::MinSize.unapply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeForSize.unapply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeNone.unapply_llfn(Function, llfn);
+            llvm::Attribute::MinSize.unapply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeForSize.unapply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeNone.unapply_llfn(AttributePlace::Function, llfn);
         }
         OptimizeAttr::Size => {
-            llvm::Attribute::MinSize.apply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeForSize.apply_llfn(Function, llfn);
-            llvm::Attribute::OptimizeNone.unapply_llfn(Function, llfn);
+            llvm::Attribute::MinSize.apply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeForSize.apply_llfn(AttributePlace::Function, llfn);
+            llvm::Attribute::OptimizeNone.unapply_llfn(AttributePlace::Function, llfn);
         }
     }
 
@@ -279,16 +279,16 @@ pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::
     set_probestack(cx, llfn);
 
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::COLD) {
-        Attribute::Cold.apply_llfn(Function, llfn);
+        Attribute::Cold.apply_llfn(AttributePlace::Function, llfn);
     }
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::FFI_RETURNS_TWICE) {
-        Attribute::ReturnsTwice.apply_llfn(Function, llfn);
+        Attribute::ReturnsTwice.apply_llfn(AttributePlace::Function, llfn);
     }
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::FFI_PURE) {
-        Attribute::ReadOnly.apply_llfn(Function, llfn);
+        Attribute::ReadOnly.apply_llfn(AttributePlace::Function, llfn);
     }
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::FFI_CONST) {
-        Attribute::ReadNone.apply_llfn(Function, llfn);
+        Attribute::ReadNone.apply_llfn(AttributePlace::Function, llfn);
     }
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::NAKED) {
         naked(llfn, true);
@@ -316,7 +316,7 @@ pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::
         let val = CString::new(features).unwrap();
         llvm::AddFunctionAttrStringValue(
             llfn,
-            llvm::AttributePlace::Function,
+            AttributePlace::Function,
             const_cstr!("target-features"),
             &val,
         );
@@ -329,7 +329,7 @@ pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::
         if let Some(module) = wasm_import_module(cx.tcx, instance.def_id()) {
             llvm::AddFunctionAttrStringValue(
                 llfn,
-                llvm::AttributePlace::Function,
+                AttributePlace::Function,
                 const_cstr!("wasm-import-module"),
                 &module,
             );
@@ -339,7 +339,7 @@ pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::
             let name = CString::new(&name.as_str()[..]).unwrap();
             llvm::AddFunctionAttrStringValue(
                 llfn,
-                llvm::AttributePlace::Function,
+                AttributePlace::Function,
                 const_cstr!("wasm-import-name"),
                 &name,
             );

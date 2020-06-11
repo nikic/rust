@@ -1,4 +1,4 @@
-pub use crate::llvm::Value;
+pub use crate::llvm::{Function, Value};
 
 use crate::llvm;
 
@@ -28,5 +28,27 @@ impl fmt::Debug for Value {
             })
             .expect("non-UTF8 value description from LLVM"),
         )
+    }
+}
+
+impl AsRef<Value> for Function {
+    fn as_ref(&self) -> &Value {
+        // SAFETY: Function is a type of Value, this is an upcast.
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self, other)
+    }
+}
+
+impl Eq for Function {}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        AsRef::<Value>::as_ref(self).fmt(f)
     }
 }

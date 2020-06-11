@@ -3,6 +3,7 @@ use crate::attributes;
 use crate::base;
 use crate::context::CodegenCx;
 use crate::llvm;
+use crate::value::Value;
 use crate::type_of::LayoutLlvmExt;
 use log::debug;
 use rustc_codegen_ssa::traits::*;
@@ -50,7 +51,7 @@ impl PreDefineMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         assert!(!instance.substs.needs_infer() && !instance.substs.has_param_types_or_consts());
 
         let fn_abi = FnAbi::of_instance(self, instance, &[]);
-        let lldecl = self.declare_fn(symbol_name, &fn_abi);
+        let lldecl: &Value = self.declare_fn(symbol_name, &fn_abi).as_ref();
         unsafe { llvm::LLVMRustSetLinkage(lldecl, base::linkage_to_llvm(linkage)) };
         let attrs = self.tcx.codegen_fn_attrs(instance.def_id());
         base::set_link_section(lldecl, &attrs);

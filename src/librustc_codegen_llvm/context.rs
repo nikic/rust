@@ -4,7 +4,7 @@ use crate::debuginfo;
 use crate::llvm;
 use crate::llvm_util;
 use crate::type_::Type;
-use crate::value::Value;
+use crate::value::{Function, Value};
 
 use rustc_codegen_ssa::base::wants_msvc_seh;
 use rustc_codegen_ssa::traits::*;
@@ -306,7 +306,7 @@ impl MiscMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         &self.vtables
     }
 
-    fn get_fn(&self, instance: Instance<'tcx>) -> &'ll Value {
+    fn get_fn(&self, instance: Instance<'tcx>) -> &'ll Function {
         get_fn(self, instance)
     }
 
@@ -381,11 +381,11 @@ impl MiscMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         &self.used_statics
     }
 
-    fn set_frame_pointer_elimination(&self, llfn: &'ll Value) {
+    fn set_frame_pointer_elimination(&self, llfn: &'ll Function) {
         attributes::set_frame_pointer_elimination(self, llfn)
     }
 
-    fn apply_target_cpu_attr(&self, llfn: &'ll Value) {
+    fn apply_target_cpu_attr(&self, llfn: &'ll Function) {
         attributes::apply_target_cpu_attr(self, llfn)
     }
 
@@ -405,7 +405,7 @@ impl MiscMethods<'tcx> for CodegenCx<'ll, 'tcx> {
 }
 
 impl CodegenCx<'b, 'tcx> {
-    crate fn get_intrinsic(&self, key: &str) -> &'b Value {
+    crate fn get_intrinsic(&self, key: &str) -> &'b Function {
         if let Some(v) = self.intrinsics.borrow().get(key).cloned() {
             return v;
         }
@@ -418,19 +418,19 @@ impl CodegenCx<'b, 'tcx> {
         name: &'static str,
         args: Option<&[&'b llvm::Type]>,
         ret: &'b llvm::Type,
-    ) -> &'b llvm::Value {
+    ) -> &'b llvm::Function {
         let fn_ty = if let Some(args) = args {
             self.type_func(args, ret)
         } else {
             self.type_variadic_func(&[], ret)
         };
         let f = self.declare_cfn(name, fn_ty);
-        llvm::SetUnnamedAddress(f, llvm::UnnamedAddr::No);
+        llvm::SetUnnamedAddress(f.as_ref(), llvm::UnnamedAddr::No);
         self.intrinsics.borrow_mut().insert(name, f);
         f
     }
 
-    fn declare_intrinsic(&self, key: &str) -> Option<&'b Value> {
+    fn declare_intrinsic(&self, key: &str) -> Option<&'b Function> {
         macro_rules! ifn {
             ($name:expr, fn() -> $ret:expr) => (
                 if key == $name {

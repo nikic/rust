@@ -577,6 +577,9 @@ extern "C" {
     pub type Value;
 }
 extern "C" {
+    pub type Function;
+}
+extern "C" {
     pub type ConstantInt;
 }
 extern "C" {
@@ -911,17 +914,17 @@ extern "C" {
     ) -> &'a Value;
     pub fn LLVMSetFunctionCallConv(Fn: &Value, CC: c_uint);
     pub fn LLVMRustAddAlignmentAttr(Fn: &Value, index: c_uint, bytes: u32);
-    pub fn LLVMRustAddDereferenceableAttr(Fn: &Value, index: c_uint, bytes: u64);
-    pub fn LLVMRustAddDereferenceableOrNullAttr(Fn: &Value, index: c_uint, bytes: u64);
-    pub fn LLVMRustAddByValAttr(Fn: &Value, index: c_uint, ty: &Type);
-    pub fn LLVMRustAddFunctionAttribute(Fn: &Value, index: c_uint, attr: Attribute);
+    pub fn LLVMRustAddDereferenceableAttr(Fn: &Function, index: c_uint, bytes: u64);
+    pub fn LLVMRustAddDereferenceableOrNullAttr(Fn: &Function, index: c_uint, bytes: u64);
+    pub fn LLVMRustAddByValAttr(Fn: &Function, index: c_uint, ty: &Type);
+    pub fn LLVMRustAddFunctionAttribute(Fn: &Function, index: c_uint, attr: Attribute);
     pub fn LLVMRustAddFunctionAttrStringValue(
-        Fn: &Value,
+        Fn: &Function,
         index: c_uint,
         Name: *const c_char,
         Value: *const c_char,
     );
-    pub fn LLVMRustRemoveFunctionAttributes(Fn: &Value, index: c_uint, attr: Attribute);
+    pub fn LLVMRustRemoveFunctionAttributes(Fn: &Function, index: c_uint, attr: Attribute);
 
     // Operations on parameters
     pub fn LLVMIsAArgument(Val: &Value) -> Option<&Value>;
