@@ -2339,11 +2339,7 @@ where
                         //
                         // For now, do not enable mutable_noalias by default at all, while the
                         // issue is being figured out.
-                        if tcx.sess.opts.debugging_opts.mutable_noalias {
-                            PointerKind::UniqueBorrowed
-                        } else {
-                            PointerKind::Shared
-                        }
+                        PointerKind::UniqueBorrowed
                     }
                 };
 
